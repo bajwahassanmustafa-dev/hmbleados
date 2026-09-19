@@ -105,7 +105,7 @@ function LeadDetailPage() {
       })
       .eq("id", leadId);
     setSaving(false);
-    if (error) return toast.error(error.message);
+    if (error) { toast.error(error.message); return; }
     toast.success("Contact details saved");
     qc.invalidateQueries({ queryKey: ["lead", leadId] });
     qc.invalidateQueries({ queryKey: ["leads"] });
@@ -114,7 +114,7 @@ function LeadDetailPage() {
   async function remove() {
     if (!confirm("Delete this lead and its outreach history?")) return;
     const { error } = await supabase.from("leads").delete().eq("id", leadId);
-    if (error) return toast.error(error.message);
+    if (error) { toast.error(error.message); return; }
     qc.invalidateQueries({ queryKey: ["leads"] });
     navigate({ to: "/leads" });
   }
