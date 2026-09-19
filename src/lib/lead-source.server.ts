@@ -129,7 +129,7 @@ class GoogleMapsLeadSource implements LeadSource {
         textQuery: `${query} in ${location}`,
         pageSize: Math.min(20, target - results.length),
       };
-      if (pageToken) body.pageToken = pageToken;
+      if (pageToken) body["pageToken"] = pageToken;
 
       const res = await fetch(`${GATEWAY_URL}/places/v1/places:searchText`, {
         method: "POST",
@@ -202,12 +202,13 @@ class GoogleMapsLeadSource implements LeadSource {
   }
 }
 
+const googleMaps = new GoogleMapsLeadSource();
 const sources: Record<string, LeadSource> = {
-  google_maps: new GoogleMapsLeadSource(),
+  google_maps: googleMaps,
 };
 
 export function getLeadSource(id: string = "google_maps"): LeadSource {
-  return sources[id] ?? sources.google_maps;
+  return sources[id] ?? googleMaps;
 }
 
 export function listLeadSources(): LeadSourceStatus[] {

@@ -39,7 +39,7 @@ export function renderTemplate(template: string, lead: TemplateLead): string {
 export function missingVariables(template: string, lead: TemplateLead): string[] {
   const found = new Set<string>();
   for (const m of template.matchAll(/\{\{\s*([a-z_]+)\s*\}\}/gi)) {
-    const k = m[1].toLowerCase() as keyof TemplateLead;
+    const k = (m[1] ?? "").toLowerCase() as keyof TemplateLead;
     if (!lead[k] || !String(lead[k]).trim()) found.add(k);
   }
   return [...found];

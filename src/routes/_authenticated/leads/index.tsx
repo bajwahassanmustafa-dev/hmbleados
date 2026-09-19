@@ -150,7 +150,7 @@ function LeadsPage() {
   async function deleteSelected() {
     const { error } = await supabase.from("leads").delete().in("id", selectedIds);
     setConfirmDelete(false);
-    if (error) return toast.error(error.message);
+    if (error) { toast.error(error.message); return; }
     toast.success(`Deleted ${selectedIds.length} lead${selectedIds.length === 1 ? "" : "s"}`);
     setSelected(new Set());
     qc.invalidateQueries({ queryKey: ["leads"] });

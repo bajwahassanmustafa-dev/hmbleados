@@ -12,6 +12,10 @@ import { Route as rootRouteImport } from './routes/__root'
 import { Route as IndexRouteImport } from './routes/index'
 import { Route as AuthenticatedRouteRouteImport } from './routes/_authenticated/route'
 import { Route as AuthRouteImport } from './routes/auth'
+import { Route as AuthenticatedHistoryRouteImport } from './routes/_authenticated/history'
+import { Route as AuthenticatedImportRouteImport } from './routes/_authenticated/import'
+import { Route as AuthenticatedOutreachRouteImport } from './routes/_authenticated/outreach'
+import { Route as AuthenticatedSettingsRouteImport } from './routes/_authenticated/settings'
 import { Route as AuthenticatedLeadsIndexRouteImport } from './routes/_authenticated/leads/index'
 import { Route as AuthenticatedLeadsLeadIdRouteImport } from './routes/_authenticated/leads/$leadId'
 import { Route as ApiPublicGmailCallbackRouteImport } from './routes/api/public/gmail/callback'
@@ -29,6 +33,26 @@ const AuthRoute = AuthRouteImport.update({
   id: '/auth',
   path: '/auth',
   getParentRoute: () => rootRouteImport,
+} as any)
+const AuthenticatedHistoryRoute = AuthenticatedHistoryRouteImport.update({
+  id: '/history',
+  path: '/history',
+  getParentRoute: () => AuthenticatedRouteRoute,
+} as any)
+const AuthenticatedImportRoute = AuthenticatedImportRouteImport.update({
+  id: '/import',
+  path: '/import',
+  getParentRoute: () => AuthenticatedRouteRoute,
+} as any)
+const AuthenticatedOutreachRoute = AuthenticatedOutreachRouteImport.update({
+  id: '/outreach',
+  path: '/outreach',
+  getParentRoute: () => AuthenticatedRouteRoute,
+} as any)
+const AuthenticatedSettingsRoute = AuthenticatedSettingsRouteImport.update({
+  id: '/settings',
+  path: '/settings',
+  getParentRoute: () => AuthenticatedRouteRoute,
 } as any)
 const AuthenticatedLeadsIndexRoute = AuthenticatedLeadsIndexRouteImport.update({
   id: '/leads/',
@@ -50,6 +74,10 @@ const ApiPublicGmailCallbackRoute = ApiPublicGmailCallbackRouteImport.update({
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
   '/auth': typeof AuthRoute
+  '/history': typeof AuthenticatedHistoryRoute
+  '/import': typeof AuthenticatedImportRoute
+  '/outreach': typeof AuthenticatedOutreachRoute
+  '/settings': typeof AuthenticatedSettingsRoute
   '/leads/$leadId': typeof AuthenticatedLeadsLeadIdRoute
   '/leads/': typeof AuthenticatedLeadsIndexRoute
   '/api/public/gmail/callback': typeof ApiPublicGmailCallbackRoute
@@ -57,6 +85,10 @@ export interface FileRoutesByFullPath {
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
   '/auth': typeof AuthRoute
+  '/history': typeof AuthenticatedHistoryRoute
+  '/import': typeof AuthenticatedImportRoute
+  '/outreach': typeof AuthenticatedOutreachRoute
+  '/settings': typeof AuthenticatedSettingsRoute
   '/leads/$leadId': typeof AuthenticatedLeadsLeadIdRoute
   '/leads': typeof AuthenticatedLeadsIndexRoute
   '/api/public/gmail/callback': typeof ApiPublicGmailCallbackRoute
@@ -66,6 +98,10 @@ export interface FileRoutesById {
   '/': typeof IndexRoute
   '/_authenticated': typeof AuthenticatedRouteRouteWithChildren
   '/auth': typeof AuthRoute
+  '/_authenticated/history': typeof AuthenticatedHistoryRoute
+  '/_authenticated/import': typeof AuthenticatedImportRoute
+  '/_authenticated/outreach': typeof AuthenticatedOutreachRoute
+  '/_authenticated/settings': typeof AuthenticatedSettingsRoute
   '/_authenticated/leads/$leadId': typeof AuthenticatedLeadsLeadIdRoute
   '/_authenticated/leads/': typeof AuthenticatedLeadsIndexRoute
   '/api/public/gmail/callback': typeof ApiPublicGmailCallbackRoute
@@ -73,14 +109,35 @@ export interface FileRoutesById {
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
   fullPaths:
-    '/' | '/auth' | '/leads/$leadId' | '/leads/' | '/api/public/gmail/callback'
+    | '/'
+    | '/auth'
+    | '/history'
+    | '/import'
+    | '/outreach'
+    | '/settings'
+    | '/leads/$leadId'
+    | '/leads/'
+    | '/api/public/gmail/callback'
   fileRoutesByTo: FileRoutesByTo
-  to: '/' | '/auth' | '/leads/$leadId' | '/leads' | '/api/public/gmail/callback'
+  to:
+    | '/'
+    | '/auth'
+    | '/history'
+    | '/import'
+    | '/outreach'
+    | '/settings'
+    | '/leads/$leadId'
+    | '/leads'
+    | '/api/public/gmail/callback'
   id:
     | '__root__'
     | '/'
     | '/_authenticated'
     | '/auth'
+    | '/_authenticated/history'
+    | '/_authenticated/import'
+    | '/_authenticated/outreach'
+    | '/_authenticated/settings'
     | '/_authenticated/leads/$leadId'
     | '/_authenticated/leads/'
     | '/api/public/gmail/callback'
@@ -116,6 +173,34 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AuthRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/_authenticated/history': {
+      id: '/_authenticated/history'
+      path: '/history'
+      fullPath: '/history'
+      preLoaderRoute: typeof AuthenticatedHistoryRouteImport
+      parentRoute: typeof AuthenticatedRouteRoute
+    }
+    '/_authenticated/import': {
+      id: '/_authenticated/import'
+      path: '/import'
+      fullPath: '/import'
+      preLoaderRoute: typeof AuthenticatedImportRouteImport
+      parentRoute: typeof AuthenticatedRouteRoute
+    }
+    '/_authenticated/outreach': {
+      id: '/_authenticated/outreach'
+      path: '/outreach'
+      fullPath: '/outreach'
+      preLoaderRoute: typeof AuthenticatedOutreachRouteImport
+      parentRoute: typeof AuthenticatedRouteRoute
+    }
+    '/_authenticated/settings': {
+      id: '/_authenticated/settings'
+      path: '/settings'
+      fullPath: '/settings'
+      preLoaderRoute: typeof AuthenticatedSettingsRouteImport
+      parentRoute: typeof AuthenticatedRouteRoute
+    }
     '/_authenticated/leads/': {
       id: '/_authenticated/leads/'
       path: '/leads'
@@ -141,11 +226,19 @@ declare module '@tanstack/react-router' {
 }
 
 interface AuthenticatedRouteRouteChildren {
+  AuthenticatedHistoryRoute: typeof AuthenticatedHistoryRoute
+  AuthenticatedImportRoute: typeof AuthenticatedImportRoute
+  AuthenticatedOutreachRoute: typeof AuthenticatedOutreachRoute
+  AuthenticatedSettingsRoute: typeof AuthenticatedSettingsRoute
   AuthenticatedLeadsLeadIdRoute: typeof AuthenticatedLeadsLeadIdRoute
   AuthenticatedLeadsIndexRoute: typeof AuthenticatedLeadsIndexRoute
 }
 
 const AuthenticatedRouteRouteChildren: AuthenticatedRouteRouteChildren = {
+  AuthenticatedHistoryRoute: AuthenticatedHistoryRoute,
+  AuthenticatedImportRoute: AuthenticatedImportRoute,
+  AuthenticatedOutreachRoute: AuthenticatedOutreachRoute,
+  AuthenticatedSettingsRoute: AuthenticatedSettingsRoute,
   AuthenticatedLeadsLeadIdRoute: AuthenticatedLeadsLeadIdRoute,
   AuthenticatedLeadsIndexRoute: AuthenticatedLeadsIndexRoute,
 }
