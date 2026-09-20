@@ -107,7 +107,7 @@ function LeadsPage() {
   async function analyzeSelected() {
     const ids = selectedIds;
     if (!ids.length) return;
-    setProgress({ done: 0, total: ids.length });
+    setProgress({ done: 0, total: ids.length, label: "Analyzing" });
     const failed: string[] = [];
     let fatal: string | null = null;
     for (let i = 0; i < ids.length && !fatal; i += 3) {
@@ -123,7 +123,7 @@ function LeadsPage() {
       } catch (e) {
         failed.push((e as Error).message);
       }
-      setProgress({ done: Math.min(i + chunk.length, ids.length), total: ids.length });
+      setProgress({ done: Math.min(i + chunk.length, ids.length), total: ids.length, label: "Analyzing" });
       qc.invalidateQueries({ queryKey: ["leads"] });
     }
     setProgress(null);
@@ -135,6 +135,41 @@ function LeadsPage() {
         duration: 10000,
       });
     } else toast.success(`Analyzed ${ids.length} lead${ids.length === 1 ? "" : "s"}`);
+  }
+
+  async function enrichSelected() {
+    const ids = selectedIds;
+    if (!ids.length) return;
+    setProgress({ done: 0, total: ids.length, label: "Checking websites" });
+    let emails = 0;
+    let socials = 0;
+    const failed: string[] = [];
+    let noWebsite = 0;
+    for (let i = 0; i < ids.length; i += 3) {
+      const chunk = ids.slice(i, i + 3);
+      try {
+        const res = await enrich({ data: { leadIds: chunk } });
+        for (const r of res.results) {
+          if (r.status === "failed") failed.push(`${r.company}: ${r.error ?? "failed"}`);
+          else if (r.status === "no_website") noWebsite++;
+          else {
+            if (r.email) emails++;
+            if (r.socialCount) socials++;
+          }
+        }
+      } catch (e) {
+        failed.push((e as Error).message);
+      }
+      setProgress({ done: Math.min(i + chunk.length, ids.length), total: ids.length, label: "Checking websites" });
+      qc.invalidateQueries({ queryKey: ["leads"] });
+    }
+    setProgress(null);
+    qc.invalidateQueries({ queryKey: ["leads"] });
+    const parts = [`${emails} email${emails === 1 ? "" : "s"} found`, `${socials} with social links`];
+    if (noWebsite) parts.push(`${noWebsite} without a website`);
+    if (failed.length) parts.push(`${failed.length} site${failed.length === 1 ? "" : "s"} unreachable`);
+    if (failed.length) toast.warning(parts.join(" · "), { description: failed.slice(0, 3).join(" · "), duration: 10000 });
+    else toast.success(parts.join(" · "));
   }
 
   async function sendToOutreach() {
@@ -199,6 +234,9 @@ function LeadsPage() {
         <Button size="sm" disabled={!selected.size || !!progress} onClick={analyzeSelected}>
           Analyze Selected
         </Button>
+        <Button size="sm" variant="secondary" disabled={!selected.size || !!progress} onClick={enrichSelected}>
+          Find Emails & Socials
+        </Button>
         <Button size="sm" variant="secondary" disabled={!selected.size || !!progress} onClick={sendToOutreach}>
           Compose Outreach
         </Button>
@@ -208,7 +246,7 @@ function LeadsPage() {
         {progress && (
           <div className="ml-auto flex items-center gap-2">
             <span>
-              Analyzing {progress.done} / {progress.total}
+              {progress.label} {progress.done} / {progress.total}
             </span>
             <Progress value={(progress.done / progress.total) * 100} className="w-40" />
           </div>
