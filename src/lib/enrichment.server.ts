@@ -69,14 +69,21 @@ async function fetchPage(url: string, timeoutMs = 10000): Promise<string | null>
     const type = res.headers.get("content-type") ?? "";
     if (!type.includes("html") && !type.includes("text/plain")) return null;
     const text = await res.text();
-    return text.slice(0, 600_000);
+    // Inline JSON blobs escape characters (\u003e, \/) which would otherwise
+    // glue junk onto addresses and links.
+    return text.slice(0, 600_000).replace(/\\u[0-9a-fA-F]{4}/g, " ").replace(/\\\//g, "/");
   } catch {
     return null;
   }
 }
 
 function cleanEmail(value: string): string | null {
-  const email = value.trim().replace(/[).,;:'"]+$/, "").toLowerCase();
+  const email = value
+    .trim()
+    .replace(/^[^A-Za-z0-9]+/, "")
+    .replace(/[).,;:'"]+$/, "")
+    .toLowerCase();
+  if (!/^[A-Za-z0-9._%+-]+@[A-Za-z0-9.-]+\.[A-Za-z]{2,24}$/.test(email)) return null;
   if (email.length > 120) return null;
   const lower = email.toLowerCase();
   if (BAD_EMAIL_PARTS.some((bad) => lower.includes(bad))) return null;
@@ -116,7 +123,7 @@ const SOCIAL_MATCHERS: Array<{ key: keyof SocialLinks; test: RegExp }> = [
   { key: "tiktok", test: /^https?:\/\/(www\.)?tiktok\.com\/[^"'\s]+/i },
 ];
 
-const SOCIAL_JUNK = /\/(sharer|share|intent|dialog|plugins|login|signup|home\.php|\?|embed)/i;
+const SOCIAL_JUNK = /\/(sharer|share|intent|dialog|plugins|login|signup|home\.php|embed|watch|shorts|channel\/UC[^/]*\/videos|status)/i;
 
 function collectSocials(html: string, into: SocialLinks) {
   for (const m of html.matchAll(/href\s*=\s*["']([^"']+)["']/gi)) {
