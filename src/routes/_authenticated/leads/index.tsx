@@ -4,7 +4,7 @@ import { useServerFn } from "@tanstack/react-start";
 import { useMemo, useState } from "react";
 import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
-import { analyzeLeads, type Lead } from "@/lib/leads.functions";
+import { analyzeLeads, enrichLeads, type Lead } from "@/lib/leads.functions";
 import { markLeadsSelected } from "@/lib/outreach.functions";
 import { setSelectedLeadIds } from "@/lib/selection";
 import { Button } from "@/components/ui/button";
@@ -44,6 +44,7 @@ function LeadsPage() {
   const qc = useQueryClient();
   const navigate = useNavigate();
   const analyze = useServerFn(analyzeLeads);
+  const enrich = useServerFn(enrichLeads);
   const markSelected = useServerFn(markLeadsSelected);
 
   const [search, setSearch] = useState("");
@@ -52,7 +53,7 @@ function LeadsPage() {
   const [sort, setSort] = useState<SortKey>("created_at");
   const [asc, setAsc] = useState(false);
   const [selected, setSelected] = useState<Set<string>>(new Set());
-  const [progress, setProgress] = useState<{ done: number; total: number } | null>(null);
+  const [progress, setProgress] = useState<{ done: number; total: number; label: string } | null>(null);
   const [confirmDelete, setConfirmDelete] = useState(false);
 
   const leadsQuery = useQuery({
