@@ -85,7 +85,9 @@ export const searchAndImportLeads = createServerFn({ method: "POST" })
 
     let duplicates = 0;
     const failed: string[] = [];
-    const toInsert: Array<Omit<Lead, "id" | "created_at" | "updated_at">> = [];
+    const toInsert: Array<
+      Omit<Lead, "id" | "created_at" | "updated_at" | "contact_page_url" | "enriched_at" | "enrichment_error" | "enrichment_status" | "social_links">
+    > = [];
     const seenInBatch = new Set<string>();
     for (const b of businesses) {
       const domain = normalizeDomain(b.website);
