@@ -56,7 +56,7 @@ export const searchAndImportLeads = createServerFn({ method: "POST" })
     }
 
     if (businesses.length === 0) {
-      return { ok: true as const, found: 0, imported: 0, duplicates: 0, failed: [] as string[] };
+      return { ok: true as const, found: 0, imported: 0, duplicates: 0, failed: [] as string[], importedIds: [] as string[] };
     }
 
     // Dedupe against existing rows by source_id, then by website domain.
@@ -124,6 +124,7 @@ export const searchAndImportLeads = createServerFn({ method: "POST" })
     }
 
     let imported = 0;
+    const importedIds: string[] = [];
     if (toInsert.length) {
       const { data: inserted, error } = await context.supabase
         .from("leads")
@@ -133,16 +134,20 @@ export const searchAndImportLeads = createServerFn({ method: "POST" })
         console.error("[leads] insert failed", error);
         // Fall back to row-by-row so one bad row does not block the batch.
         for (const row of toInsert) {
-          const { error: e2 } = await context.supabase.from("leads").insert(row);
+          const { data: one, error: e2 } = await context.supabase.from("leads").insert(row).select("id").single();
           if (e2) failed.push(`${row.company_name}: ${e2.message}`);
-          else imported++;
+          else {
+            imported++;
+            if (one?.id) importedIds.push(one.id);
+          }
         }
       } else {
         imported = inserted?.length ?? 0;
+        for (const r of inserted ?? []) importedIds.push(r.id);
       }
     }
 
-    return { ok: true as const, found: businesses.length, imported, duplicates, failed };
+    return { ok: true as const, found: businesses.length, imported, duplicates, failed, importedIds };
   });
 
 // ---------------------------------------------------------------------------
