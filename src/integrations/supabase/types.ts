@@ -78,10 +78,14 @@ export type Database = {
           ai_score: number | null
           city: string | null
           company_name: string
+          contact_page_url: string | null
           country: string | null
           created_at: string
           description: string | null
           email: string | null
+          enriched_at: string | null
+          enrichment_error: string | null
+          enrichment_status: string
           first_name: string | null
           id: string
           industry: string | null
@@ -93,6 +97,7 @@ export type Database = {
           rating: number | null
           recommended_service: string | null
           review_count: number | null
+          social_links: Json | null
           source: string
           source_id: string | null
           updated_at: string
@@ -105,10 +110,14 @@ export type Database = {
           ai_score?: number | null
           city?: string | null
           company_name: string
+          contact_page_url?: string | null
           country?: string | null
           created_at?: string
           description?: string | null
           email?: string | null
+          enriched_at?: string | null
+          enrichment_error?: string | null
+          enrichment_status?: string
           first_name?: string | null
           id?: string
           industry?: string | null
@@ -120,6 +129,7 @@ export type Database = {
           rating?: number | null
           recommended_service?: string | null
           review_count?: number | null
+          social_links?: Json | null
           source?: string
           source_id?: string | null
           updated_at?: string
@@ -132,10 +142,14 @@ export type Database = {
           ai_score?: number | null
           city?: string | null
           company_name?: string
+          contact_page_url?: string | null
           country?: string | null
           created_at?: string
           description?: string | null
           email?: string | null
+          enriched_at?: string | null
+          enrichment_error?: string | null
+          enrichment_status?: string
           first_name?: string | null
           id?: string
           industry?: string | null
@@ -147,6 +161,7 @@ export type Database = {
           rating?: number | null
           recommended_service?: string | null
           review_count?: number | null
+          social_links?: Json | null
           source?: string
           source_id?: string | null
           updated_at?: string
