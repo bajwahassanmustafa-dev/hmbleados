@@ -2,7 +2,7 @@ import { createFileRoute, Link } from "@tanstack/react-router";
 import { useQuery } from "@tanstack/react-query";
 import { useServerFn } from "@tanstack/react-start";
 import { useState } from "react";
-import { getLeadSourceStatus, searchAndImportLeads } from "@/lib/leads.functions";
+import { enrichLeads, getLeadSourceStatus, searchAndImportLeads } from "@/lib/leads.functions";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -18,6 +18,7 @@ type Result = Awaited<ReturnType<typeof searchAndImportLeads>>;
 function ImportPage() {
   const getStatus = useServerFn(getLeadSourceStatus);
   const run = useServerFn(searchAndImportLeads);
+  const enrich = useServerFn(enrichLeads);
   const status = useQuery({ queryKey: ["lead-source-status"], queryFn: () => getStatus() });
   const [keyword, setKeyword] = useState("");
   const [location, setLocation] = useState("");
@@ -25,6 +26,9 @@ function ImportPage() {
   const [busy, setBusy] = useState(false);
   const [result, setResult] = useState<Result | null>(null);
   const [error, setError] = useState<string | null>(null);
+  const [lookup, setLookup] = useState(true);
+  const [lookupProgress, setLookupProgress] = useState<{ done: number; total: number } | null>(null);
+  const [lookupSummary, setLookupSummary] = useState<string | null>(null);
 
   const active = status.data?.sources.find((s) => s.id === status.data?.active);
   const max = active?.maxResults ?? 60;
@@ -37,11 +41,42 @@ function ImportPage() {
     try {
       const res = await run({ data: { keyword, location, limit: Math.min(Math.max(1, limit), max) } });
       setResult(res);
+      if (lookup && res.ok && res.importedIds.length) await runLookup(res.importedIds);
     } catch (err) {
       setError((err as Error).message);
     } finally {
       setBusy(false);
     }
+  }
+
+  async function runLookup(ids: string[]) {
+    setLookupSummary(null);
+    setLookupProgress({ done: 0, total: ids.length });
+    let emails = 0;
+    let socials = 0;
+    let unreachable = 0;
+    let noWebsite = 0;
+    for (let i = 0; i < ids.length; i += 3) {
+      const chunk = ids.slice(i, i + 3);
+      try {
+        const res = await enrich({ data: { leadIds: chunk } });
+        for (const r of res.results) {
+          if (r.status === "failed") unreachable++;
+          else if (r.status === "no_website") noWebsite++;
+          else {
+            if (r.email) emails++;
+            if (r.socialCount) socials++;
+          }
+        }
+      } catch {
+        unreachable += chunk.length;
+      }
+      setLookupProgress({ done: Math.min(i + chunk.length, ids.length), total: ids.length });
+    }
+    setLookupProgress(null);
+    setLookupSummary(
+      `${emails} email${emails === 1 ? "" : "s"} found · ${socials} with social links · ${noWebsite} without a website · ${unreachable} site${unreachable === 1 ? "" : "s"} unreachable`,
+    );
   }
 
   return (
@@ -92,10 +127,21 @@ function ImportPage() {
             <Input id="lim" type="number" min={1} max={max} value={limit} onChange={(e) => setLimit(Number(e.target.value))} />
           </div>
         </div>
-        <Button type="submit" disabled={busy || !active?.configured}>
+        <label className="flex items-center gap-2 text-sm">
+          <input type="checkbox" checked={lookup} onChange={(e) => setLookup(e.target.checked)} className="h-4 w-4" />
+          After importing, visit each website to find a contact email and social links
+        </label>
+        <Button type="submit" disabled={busy || !!lookupProgress || !active?.configured}>
           {busy ? "Searching and importing…" : "Search & Import"}
         </Button>
       </form>
+
+      {lookupProgress && (
+        <p className="rounded-md border p-3 text-sm">
+          Checking websites {lookupProgress.done} / {lookupProgress.total}…
+        </p>
+      )}
+      {lookupSummary && <p className="rounded-md border p-3 text-sm">Website lookup: {lookupSummary}</p>}
 
       {error && <p className="rounded-md border border-destructive/40 bg-destructive/5 p-3 text-sm text-destructive">{error}</p>}
 

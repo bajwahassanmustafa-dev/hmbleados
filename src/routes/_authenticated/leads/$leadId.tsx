@@ -4,7 +4,7 @@ import { useServerFn } from "@tanstack/react-start";
 import { useEffect, useState } from "react";
 import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
-import { analyzeLeads, type Lead } from "@/lib/leads.functions";
+import { analyzeLeads, enrichLeads, type Lead } from "@/lib/leads.functions";
 import { setSelectedLeadIds } from "@/lib/selection";
 import type { Tables } from "@/integrations/supabase/types";
 import { Button } from "@/components/ui/button";
@@ -45,7 +45,9 @@ function LeadDetailPage() {
   const qc = useQueryClient();
   const navigate = useNavigate();
   const analyze = useServerFn(analyzeLeads);
+  const enrich = useServerFn(enrichLeads);
   const [analyzing, setAnalyzing] = useState(false);
+  const [enriching, setEnriching] = useState(false);
   const [contact, setContact] = useState({ first_name: "", last_name: "", email: "" });
   const [saving, setSaving] = useState(false);
 
@@ -94,6 +96,25 @@ function LeadDetailPage() {
     }
   }
 
+  async function runEnrichment() {
+    setEnriching(true);
+    try {
+      const res = await enrich({ data: { leadIds: [leadId] } });
+      const r = res.results[0];
+      if (!r) toast.error("Lookup returned nothing");
+      else if (r.status === "failed") toast.error(r.error ?? "Website could not be reached", { duration: 10000 });
+      else if (r.status === "no_website") toast.warning("This lead has no website to check");
+      else if (r.status === "nothing") toast.warning("No email or social links published on that website");
+      else toast.success(`${r.email ? `Email: ${r.email}` : "No email found"} · ${r.socialCount ?? 0} social link(s)`);
+    } catch (e) {
+      toast.error((e as Error).message);
+    } finally {
+      setEnriching(false);
+      qc.invalidateQueries({ queryKey: ["lead", leadId] });
+      qc.invalidateQueries({ queryKey: ["leads"] });
+    }
+  }
+
   async function saveContact() {
     setSaving(true);
     const { error } = await supabase
@@ -124,6 +145,9 @@ function LeadDetailPage() {
     return <p className="text-sm text-destructive">{(leadQuery.error as Error)?.message ?? "Lead not found"}</p>;
 
   const a = (lead.ai_analysis ?? null) as Analysis | null;
+  const socialEntries = Object.entries((lead.social_links ?? {}) as Record<string, string>).filter(
+    ([, v]) => typeof v === "string" && v,
+  );
 
   return (
     <div className="space-y-6">
@@ -137,6 +161,9 @@ function LeadDetailPage() {
         <div className="ml-auto flex gap-2">
           <Button size="sm" onClick={runAnalysis} disabled={analyzing}>
             {analyzing ? "Analyzing…" : "Analyze Lead"}
+          </Button>
+          <Button size="sm" variant="outline" onClick={runEnrichment} disabled={enriching}>
+            {enriching ? "Checking website…" : "Find Contact Details"}
           </Button>
           <Button
             size="sm"
@@ -191,6 +218,53 @@ function LeadDetailPage() {
             </div>
             <Field label="Created" value={new Date(lead.created_at).toLocaleString()} />
             <Field label="Updated" value={new Date(lead.updated_at).toLocaleString()} />
+          </dl>
+
+          <h2 className="mb-2 mt-6 text-sm font-semibold">Website lookup</h2>
+          <dl className="grid grid-cols-2 gap-3">
+            <Field
+              label="Status"
+              value={
+                lead.enrichment_status === "none"
+                  ? "Not checked yet"
+                  : lead.enrichment_status === "no_website"
+                    ? "No website to check"
+                    : lead.enrichment_status === "failed"
+                      ? `Failed: ${lead.enrichment_error ?? "unreachable"}`
+                      : lead.enrichment_status === "nothing"
+                        ? "Checked — nothing published"
+                        : `Checked${lead.enriched_at ? ` ${new Date(lead.enriched_at).toLocaleString()}` : ""}`
+              }
+            />
+            <Field
+              label="Contact page"
+              value={
+                lead.contact_page_url ? (
+                  <a href={lead.contact_page_url} target="_blank" rel="noreferrer" className="text-primary hover:underline">
+                    Open
+                  </a>
+                ) : null
+              }
+            />
+            <div className="col-span-2">
+              <Field
+                label="Social links"
+                value={
+                  socialEntries.length ? (
+                    <ul className="space-y-0.5">
+                      {socialEntries.map(([k, v]) => (
+                        <li key={k}>
+                          <span className="capitalize text-muted-foreground">{k}: </span>
+                          <a href={v} target="_blank" rel="noreferrer" className="text-primary hover:underline break-all">
+                            {v}
+                          </a>
+                        </li>
+                      ))}
+                    </ul>
+                  ) : null
+                }
+              />
+            </div>
           </dl>
 
           <h2 className="mb-3 mt-6 text-sm font-semibold">Contact (editable)</h2>
