@@ -221,3 +221,82 @@ export const analyzeLeads = createServerFn({ method: "POST" })
     }
     return { notConfigured: false as const, results };
   });
+
+// ---------------------------------------------------------------------------
+// Website enrichment (contact email + social links)
+// ---------------------------------------------------------------------------
+
+const EnrichInput = z.object({ leadIds: z.array(z.string().uuid()).min(1).max(5) });
+
+export type EnrichResult = {
+  leadId: string;
+  company: string;
+  status: "found" | "partial" | "nothing" | "no_website" | "failed";
+  email?: string | null;
+  socialCount?: number;
+  error?: string;
+};
+
+/**
+ * Visits each lead's website and saves any contact email and social profile
+ * links found on the page. Nothing is guessed: if the site has no address,
+ * the lead keeps an empty email.
+ */
+export const enrichLeads = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .inputValidator((d: unknown) => EnrichInput.parse(d))
+  .handler(async ({ data, context }) => {
+    const { enrichFromWebsite, EnrichmentError } = await import("./enrichment.server");
+
+    const { data: leads, error } = await context.supabase
+      .from("leads")
+      .select("id, company_name, website, email")
+      .in("id", data.leadIds)
+      .eq("user_id", context.userId);
+    if (error) throw new Error(error.message);
+
+    const results: EnrichResult[] = [];
+    for (const lead of leads ?? []) {
+      if (!lead.website) {
+        await context.supabase
+          .from("leads")
+          .update({ enrichment_status: "no_website", enrichment_error: null, enriched_at: new Date().toISOString() })
+          .eq("id", lead.id);
+        results.push({ leadId: lead.id, company: lead.company_name, status: "no_website" });
+        continue;
+      }
+      try {
+        const found = await enrichFromWebsite(lead.website);
+        const socialCount = Object.keys(found.socials).length;
+        const status = found.email && socialCount ? "found" : found.email || socialCount ? "partial" : "nothing";
+        const { error: upErr } = await context.supabase
+          .from("leads")
+          .update({
+            email: lead.email ?? found.email,
+            social_links: socialCount ? found.socials : null,
+            contact_page_url: found.contactPageUrl,
+            enrichment_status: status,
+            enrichment_error: null,
+            enriched_at: new Date().toISOString(),
+          })
+          .eq("id", lead.id);
+        if (upErr) throw new Error(`Saving contact details failed: ${upErr.message}`);
+        results.push({
+          leadId: lead.id,
+          company: lead.company_name,
+          status,
+          email: lead.email ?? found.email,
+          socialCount,
+        });
+      } catch (e) {
+        const msg = e instanceof EnrichmentError ? e.message : (e as Error).message;
+        console.error(`[enrich] lead ${lead.id} failed: ${msg}`);
+        await context.supabase
+          .from("leads")
+          .update({ enrichment_status: "failed", enrichment_error: msg, enriched_at: new Date().toISOString() })
+          .eq("id", lead.id);
+        results.push({ leadId: lead.id, company: lead.company_name, status: "failed", error: msg });
+      }
+    }
+    return { results };
+  });
