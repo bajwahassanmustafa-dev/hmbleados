@@ -233,6 +233,147 @@ export type Database = {
           },
         ]
       }
+      search_results: {
+        Row: {
+          address: string | null
+          business_name: string
+          category: string | null
+          city: string | null
+          country: string | null
+          created_at: string
+          description: string | null
+          email: string | null
+          id: string
+          imported_lead_id: string | null
+          maps_url: string | null
+          match_key: string
+          phone: string | null
+          quality_score: number
+          rating: number | null
+          review_count: number | null
+          run_id: string
+          social_links: Json
+          sources: Json
+          updated_at: string
+          user_id: string
+          website: string | null
+          website_evidence: Json
+          website_status: string
+        }
+        Insert: {
+          address?: string | null
+          business_name: string
+          category?: string | null
+          city?: string | null
+          country?: string | null
+          created_at?: string
+          description?: string | null
+          email?: string | null
+          id?: string
+          imported_lead_id?: string | null
+          maps_url?: string | null
+          match_key: string
+          phone?: string | null
+          quality_score?: number
+          rating?: number | null
+          review_count?: number | null
+          run_id: string
+          social_links?: Json
+          sources?: Json
+          updated_at?: string
+          user_id: string
+          website?: string | null
+          website_evidence?: Json
+          website_status?: string
+        }
+        Update: {
+          address?: string | null
+          business_name?: string
+          category?: string | null
+          city?: string | null
+          country?: string | null
+          created_at?: string
+          description?: string | null
+          email?: string | null
+          id?: string
+          imported_lead_id?: string | null
+          maps_url?: string | null
+          match_key?: string
+          phone?: string | null
+          quality_score?: number
+          rating?: number | null
+          review_count?: number | null
+          run_id?: string
+          social_links?: Json
+          sources?: Json
+          updated_at?: string
+          user_id?: string
+          website?: string | null
+          website_evidence?: Json
+          website_status?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "search_results_imported_lead_id_fkey"
+            columns: ["imported_lead_id"]
+            isOneToOne: false
+            referencedRelation: "leads"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "search_results_run_id_fkey"
+            columns: ["run_id"]
+            isOneToOne: false
+            referencedRelation: "search_runs"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      search_runs: {
+        Row: {
+          created_at: string
+          error_message: string | null
+          id: string
+          location: string
+          max_leads: number | null
+          min_leads: number | null
+          niche: string
+          result_count: number
+          rounds: number
+          status: string
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          error_message?: string | null
+          id?: string
+          location: string
+          max_leads?: number | null
+          min_leads?: number | null
+          niche: string
+          result_count?: number
+          rounds?: number
+          status?: string
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          error_message?: string | null
+          id?: string
+          location?: string
+          max_leads?: number | null
+          min_leads?: number | null
+          niche?: string
+          result_count?: number
+          rounds?: number
+          status?: string
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
       user_settings: {
         Row: {
           ai_model: string | null
