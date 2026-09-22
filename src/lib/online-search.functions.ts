@@ -2,6 +2,7 @@ import { createServerFn } from "@tanstack/react-start";
 import { z } from "zod";
 import { requireSupabaseAuth } from "@/integrations/supabase/auth-middleware";
 import type { Tables } from "@/integrations/supabase/types";
+import type * as OS from "./online-search.server";
 
 export type SearchRun = Tables<"search_runs">;
 export type SearchResultRow = Tables<"search_results">;
@@ -165,7 +166,7 @@ export const runSearchStage = createServerFn({ method: "POST" })
       .eq("run_id", run.id);
     if (rowsErr) throw new Error(rowsErr.message);
 
-    const existing: S.Candidate[] = (rows ?? []).map(rowToCandidate);
+    const existing: OS.Candidate[] = (rows ?? []).map(rowToCandidate);
     const keyById = new Map<string, string>();
     for (const r of rows ?? []) keyById.set(r.match_key, r.id);
 
@@ -211,10 +212,10 @@ export const runSearchStage = createServerFn({ method: "POST" })
     let updated = 0;
     for (const c of existing) {
       const { status, evidence } = S.computeWebsiteStatus(c);
-      const forced = c.website_evidence.filter((e) => e.note.startsWith("Checked:"));
-      c.website_evidence = [...evidence.filter((e) => !forced.some((f) => f.url === e.url)), ...forced];
+      const forced = c.website_evidence.filter((e: OS.EvidenceItem) => e.note.startsWith("Checked:"));
+      c.website_evidence = [...evidence.filter((e: OS.EvidenceItem) => !forced.some((f: OS.EvidenceItem) => f.url === e.url)), ...forced];
       c.website_status = c.website_status === "uncertain" && forced.length ? c.website_status : status;
-      if (forced.some((f) => f.note.includes("not reachable") || f.note.includes("does not mention"))) {
+      if (forced.some((f: OS.EvidenceItem) => f.note.includes("not reachable") || f.note.includes("does not mention"))) {
         c.website_status = "uncertain";
       }
       c.quality_score = S.scoreCandidate(c);
@@ -251,7 +252,7 @@ type ServerLib = typeof import("./online-search.server");
 
 async function stageMaps(
   S: ServerLib,
-  existing: S.Candidate[],
+  existing: OS.Candidate[],
   niche: string,
   location: string,
   limit: number,
@@ -261,11 +262,16 @@ async function stageMaps(
   if (!source.status().configured) return 0;
   const businesses = await source.searchBusinesses(niche, location, Math.min(limit || 40, 60));
   for (const b of businesses) {
-    const sources: S.SourceRef[] = [];
+    const sources: OS.SourceRef[] = [];
     if (b.maps_url) sources.push({ url: b.maps_url, kind: "google_page", origin: "Google Maps listing", title: b.company_name });
     if (b.website) {
       const cls = S.classifyUrl(b.website);
-      sources.push({ url: b.website, kind: cls.kind, platform: cls.platform, origin: "Website listed on Google Maps" });
+      sources.push({
+        url: b.website,
+        kind: cls.kind,
+        ...(cls.platform ? { platform: cls.platform } : {}),
+        origin: "Website listed on Google Maps",
+      });
     }
     const socialFromWebsite: Record<string, string> = {};
     if (b.website) {
@@ -299,7 +305,7 @@ const EMAIL_RE = /[A-Za-z0-9._%+-]+@[A-Za-z0-9.-]+\.[A-Za-z]{2,24}/;
 
 async function stageWeb(
   S: ServerLib,
-  existing: S.Candidate[],
+  existing: OS.Candidate[],
   queries: string[],
   stage: SearchStage,
   location: string,
@@ -330,7 +336,7 @@ async function stageWeb(
           {
             url: r.url,
             kind: cls.kind,
-            platform: cls.platform,
+            ...(cls.platform ? { platform: cls.platform } : {}),
             title: r.title,
             origin: `${stage === "social" ? "Social search" : stage === "directory" ? "Directory search" : "Web search"}: ${q}`,
           },
@@ -341,9 +347,9 @@ async function stageWeb(
   }
 }
 
-async function stageVerify(S: ServerLib, existing: S.Candidate[]): Promise<number> {
+async function stageVerify(S: ServerLib, existing: OS.Candidate[]): Promise<number> {
   const pendingList = existing.filter(
-    (c) => c.website && !c.website_evidence.some((e) => e.url === c.website && e.note.startsWith("Checked:")),
+    (c) => c.website && !c.website_evidence.some((e: OS.EvidenceItem) => e.url === c.website && e.note.startsWith("Checked:")),
   );
   const batch = pendingList.slice(0, 5);
   for (const c of batch) {
@@ -354,7 +360,7 @@ async function stageVerify(S: ServerLib, existing: S.Candidate[]): Promise<numbe
       : v.matches
         ? `Checked: live standalone website — ${v.note}`
         : `Checked: live page but it does not mention this business — ${v.note}`;
-    c.website_evidence = [...c.website_evidence.filter((e) => e.url !== site), { url: site, kind: "website", note }];
+    c.website_evidence = [...c.website_evidence.filter((e: OS.EvidenceItem) => e.url !== site), { url: site, kind: "website", note }];
     if (!v.reachable || !v.matches) {
       c.website_status = "uncertain";
       c.website = v.reachable && v.matches ? site : null;
@@ -378,7 +384,7 @@ async function stageVerify(S: ServerLib, existing: S.Candidate[]): Promise<numbe
   return Math.max(pendingList.length - batch.length, 0);
 }
 
-function upsertCandidate(S: ServerLib, existing: S.Candidate[], cand: S.Candidate) {
+function upsertCandidate(S: ServerLib, existing: OS.Candidate[], cand: OS.Candidate) {
   const match = S.findMatch(existing, cand);
   if (match) S.mergeInto(match, cand);
   else existing.push(cand);
@@ -388,7 +394,7 @@ function upsertCandidate(S: ServerLib, existing: S.Candidate[], cand: S.Candidat
 // Row mapping
 // ---------------------------------------------------------------------------
 
-function rowToCandidate(r: SearchResultRow): import("./online-search.server").Candidate {
+function rowToCandidate(r: SearchResultRow): OS.Candidate {
   return {
     matchKey: r.match_key,
     business_name: r.business_name,
@@ -404,15 +410,15 @@ function rowToCandidate(r: SearchResultRow): import("./online-search.server").Ca
     review_count: r.review_count,
     description: r.description,
     social_links: (r.social_links ?? {}) as Record<string, string>,
-    website_status: r.website_status as import("./online-search.server").WebsiteStatus,
-    website_evidence: (r.website_evidence ?? []) as import("./online-search.server").EvidenceItem[],
-    sources: (r.sources ?? []) as import("./online-search.server").SourceRef[],
+    website_status: r.website_status as OS.WebsiteStatus,
+    website_evidence: (r.website_evidence ?? []) as OS.EvidenceItem[],
+    sources: (r.sources ?? []) as OS.SourceRef[],
     quality_score: r.quality_score,
     place_id: r.match_key.startsWith("gmaps:") ? r.match_key.slice(6) : null,
   };
 }
 
-function candidateToRow(c: import("./online-search.server").Candidate, runId: string, userId: string) {
+function candidateToRow(c: OS.Candidate, runId: string, userId: string) {
   return {
     run_id: runId,
     user_id: userId,
