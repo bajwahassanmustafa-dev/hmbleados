@@ -17,6 +17,7 @@ export const Route = createFileRoute("/_authenticated")({
 const NAV = [
   { to: "/leads", label: "Leads" },
   { to: "/import", label: "Map Scraper" },
+  { to: "/online-search", label: "Online Search" },
   { to: "/outreach", label: "Outreach" },
   { to: "/history", label: "History" },
   { to: "/settings", label: "Settings" },

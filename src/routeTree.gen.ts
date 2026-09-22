@@ -14,6 +14,7 @@ import { Route as AuthenticatedRouteRouteImport } from './routes/_authenticated/
 import { Route as AuthRouteImport } from './routes/auth'
 import { Route as AuthenticatedHistoryRouteImport } from './routes/_authenticated/history'
 import { Route as AuthenticatedImportRouteImport } from './routes/_authenticated/import'
+import { Route as AuthenticatedOnlineSearchRouteImport } from './routes/_authenticated/online-search'
 import { Route as AuthenticatedOutreachRouteImport } from './routes/_authenticated/outreach'
 import { Route as AuthenticatedSettingsRouteImport } from './routes/_authenticated/settings'
 import { Route as AuthenticatedLeadsIndexRouteImport } from './routes/_authenticated/leads/index'
@@ -44,6 +45,12 @@ const AuthenticatedImportRoute = AuthenticatedImportRouteImport.update({
   path: '/import',
   getParentRoute: () => AuthenticatedRouteRoute,
 } as any)
+const AuthenticatedOnlineSearchRoute =
+  AuthenticatedOnlineSearchRouteImport.update({
+    id: '/online-search',
+    path: '/online-search',
+    getParentRoute: () => AuthenticatedRouteRoute,
+  } as any)
 const AuthenticatedOutreachRoute = AuthenticatedOutreachRouteImport.update({
   id: '/outreach',
   path: '/outreach',
@@ -76,6 +83,7 @@ export interface FileRoutesByFullPath {
   '/auth': typeof AuthRoute
   '/history': typeof AuthenticatedHistoryRoute
   '/import': typeof AuthenticatedImportRoute
+  '/online-search': typeof AuthenticatedOnlineSearchRoute
   '/outreach': typeof AuthenticatedOutreachRoute
   '/settings': typeof AuthenticatedSettingsRoute
   '/leads/$leadId': typeof AuthenticatedLeadsLeadIdRoute
@@ -87,6 +95,7 @@ export interface FileRoutesByTo {
   '/auth': typeof AuthRoute
   '/history': typeof AuthenticatedHistoryRoute
   '/import': typeof AuthenticatedImportRoute
+  '/online-search': typeof AuthenticatedOnlineSearchRoute
   '/outreach': typeof AuthenticatedOutreachRoute
   '/settings': typeof AuthenticatedSettingsRoute
   '/leads/$leadId': typeof AuthenticatedLeadsLeadIdRoute
@@ -100,6 +109,7 @@ export interface FileRoutesById {
   '/auth': typeof AuthRoute
   '/_authenticated/history': typeof AuthenticatedHistoryRoute
   '/_authenticated/import': typeof AuthenticatedImportRoute
+  '/_authenticated/online-search': typeof AuthenticatedOnlineSearchRoute
   '/_authenticated/outreach': typeof AuthenticatedOutreachRoute
   '/_authenticated/settings': typeof AuthenticatedSettingsRoute
   '/_authenticated/leads/$leadId': typeof AuthenticatedLeadsLeadIdRoute
@@ -113,6 +123,7 @@ export interface FileRouteTypes {
     | '/auth'
     | '/history'
     | '/import'
+    | '/online-search'
     | '/outreach'
     | '/settings'
     | '/leads/$leadId'
@@ -124,6 +135,7 @@ export interface FileRouteTypes {
     | '/auth'
     | '/history'
     | '/import'
+    | '/online-search'
     | '/outreach'
     | '/settings'
     | '/leads/$leadId'
@@ -136,6 +148,7 @@ export interface FileRouteTypes {
     | '/auth'
     | '/_authenticated/history'
     | '/_authenticated/import'
+    | '/_authenticated/online-search'
     | '/_authenticated/outreach'
     | '/_authenticated/settings'
     | '/_authenticated/leads/$leadId'
@@ -187,6 +200,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AuthenticatedImportRouteImport
       parentRoute: typeof AuthenticatedRouteRoute
     }
+    '/_authenticated/online-search': {
+      id: '/_authenticated/online-search'
+      path: '/online-search'
+      fullPath: '/online-search'
+      preLoaderRoute: typeof AuthenticatedOnlineSearchRouteImport
+      parentRoute: typeof AuthenticatedRouteRoute
+    }
     '/_authenticated/outreach': {
       id: '/_authenticated/outreach'
       path: '/outreach'
@@ -228,6 +248,7 @@ declare module '@tanstack/react-router' {
 interface AuthenticatedRouteRouteChildren {
   AuthenticatedHistoryRoute: typeof AuthenticatedHistoryRoute
   AuthenticatedImportRoute: typeof AuthenticatedImportRoute
+  AuthenticatedOnlineSearchRoute: typeof AuthenticatedOnlineSearchRoute
   AuthenticatedOutreachRoute: typeof AuthenticatedOutreachRoute
   AuthenticatedSettingsRoute: typeof AuthenticatedSettingsRoute
   AuthenticatedLeadsLeadIdRoute: typeof AuthenticatedLeadsLeadIdRoute
@@ -237,6 +258,7 @@ interface AuthenticatedRouteRouteChildren {
 const AuthenticatedRouteRouteChildren: AuthenticatedRouteRouteChildren = {
   AuthenticatedHistoryRoute: AuthenticatedHistoryRoute,
   AuthenticatedImportRoute: AuthenticatedImportRoute,
+  AuthenticatedOnlineSearchRoute: AuthenticatedOnlineSearchRoute,
   AuthenticatedOutreachRoute: AuthenticatedOutreachRoute,
   AuthenticatedSettingsRoute: AuthenticatedSettingsRoute,
   AuthenticatedLeadsLeadIdRoute: AuthenticatedLeadsLeadIdRoute,
