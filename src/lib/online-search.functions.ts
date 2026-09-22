@@ -184,7 +184,7 @@ export const runSearchStage = createServerFn({ method: "POST" })
       } else {
         const queries = S.planQueries(run.niche, run.location, data.stage, data.round);
         await stageWeb(S, existing, queries, data.stage, run.location);
-        message = `${S.STAGE_MESSAGES?.[data.stage] ?? "Search"} finished`;
+        message = `${STAGE_LABELS[data.stage]} finished`;
       }
     } catch (e) {
       const err = e as Error;
